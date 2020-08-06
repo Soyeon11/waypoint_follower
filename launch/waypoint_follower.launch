@@ -1,0 +1,41 @@
+<launch>
+
+	<arg name="init_speed" default="2.0" />
+	<arg name="decelate_speed" default="1.5" />
+	<arg name="accelate_speed" default="5.0" /> 
+	<arg name="backward_movement_speed" default="-1.8" /> 
+	<arg name="init_lookahead_distance" default="5.0" />
+	<arg name="decelate_lookahead_distance" default="1.5" />
+	<arg name="accelate_lookahead_distance" default="10.0" />
+	<arg name="current_mission_state" default="0" />
+	<arg name="first_state_index" default="16" />
+	<arg name="second_state_index" default="21" />
+	<arg name="third_state_index" default="36" />
+	<arg name="fourth_state_index" default="47" />
+	<arg name="fifth_state_index" default="113" />
+	<arg name="sixth_state_index" default="137" />
+	<arg name="seventh_state_index" default="159" />
+	<arg name="eighth_state_index" default="182" />
+	<arg name="nineth_state_index" default="247" />
+
+	<node name="waypoint_follower_node" pkg="waypoint_follower" type="waypoint_follower" output="screen">
+		<param name="init_speed" value="$(arg init_speed)" />
+		<param name="decelate_speed" value="$(arg decelate_speed)" />
+		<param name="accelate_speed" value="$(arg accelate_speed)" />
+		<param name="backward_movement_speed" value="$(arg backward_movement_speed)" />
+		<param name="init_lookahead_distance" value="$(arg init_lookahead_distance)" />
+		<param name="decelate_lookahead_distance" value="$(arg decelate_lookahead_distance)" />
+		<param name="accelate_lookahead_distance" value="$(arg accelate_lookahead_distance)" />
+		<param name="current_mission_state" value="$(arg current_mission_state)" />
+		<param name="first_state_index" value="$(arg first_state_index)" />
+		<param name="second_state_index" value="$(arg second_state_index)" />
+		<param name="third_state_index" value="$(arg third_state_index)" />
+		<param name="fourth_state_index" value="$(arg fourth_state_index)" />
+		<param name="fifth_state_index" value="$(arg fifth_state_index)" />
+		<param name="sixth_state_index" value="$(arg sixth_state_index)" />
+		<param name="seventh_state_index" value="$(arg seventh_state_index)" />
+		<param name="eighth_state_index" value="$(arg eighth_state_index)" />
+		<param name="nineth_state_index" value="$(arg nineth_state_index)" />
+	</node>
+
+</launch>
