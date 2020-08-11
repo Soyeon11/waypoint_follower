@@ -211,5 +211,5 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(waypoint_follower src/waypoint_follower_twoway_0722.cpp)
+add_executable(waypoint_follower src/waypoint_follower_twoway_0811.cpp)
 target_link_libraries(waypoint_follower ${catkin_LIBRARIES})

@@ -3,6 +3,7 @@
 #include <ackermann_msgs/AckermannDriveStamped.h>
 #include <waypoint_maker/Lane.h>
 #include <waypoint_maker/Waypoint.h>
+#include <waypoint_maker/State.h>
 #include <dynamic_avoidance/DynamicControl.h>
 #include <std_msgs/Bool.h>
 
@@ -101,6 +102,7 @@ ros::NodeHandle nh_;
 ros::NodeHandle private_nh_;
 ros::Publisher ackermann_pub_;
 ros::Publisher index_pub_;
+ros::Publisher state_pub_;
 
 ros::Subscriber pose_sub_;
 ros::Subscriber course_sub_;
@@ -109,7 +111,7 @@ ros::Subscriber parking_area_sub_;
 
 ackermann_msgs::AckermannDriveStamped ackermann_msg_;
 waypoint_maker::Waypoint index_msg_;
-
+waypoint_maker::State state_msg_;
 
 public:
 WaypointFollower() {
@@ -123,6 +125,7 @@ WaypointFollower() {
 void initSetup() {
         ackermann_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ctrl_cmd", 10);
 	index_pub_ = nh_.advertise<waypoint_maker::Waypoint>("target_state", 10);
+	state_pub_ = nh_.advertise<waypoint_maker::State>("gps_state", 10);
 
         pose_sub_ = nh_.subscribe("current_pose", 10, &WaypointFollower::PoseCallback, this);
         course_sub_ = nh_.subscribe("course", 10, &WaypointFollower::CourseCallback, this);
@@ -496,6 +499,9 @@ void process() {
 		index_msg_.lane_number = lane_number_;
 		index_msg_.mission_state = waypoints_[target_index_].mission_state;
 		index_pub_.publish(index_msg_);
+		
+		state_msg_.current_state = waypoints_[target_index_].mission_state;
+		state_pub_.publish(state_msg_);
         }
 
 }
