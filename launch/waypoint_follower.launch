@@ -8,10 +8,10 @@
 	<arg name="decelate_lookahead_distance" default="1.5" />
 	<arg name="accelate_lookahead_distance" default="10.0" />
 	<arg name="current_mission_state" default="0" />
-	<arg name="first_state_index" default="16" />
-	<arg name="second_state_index" default="21" />
-	<arg name="third_state_index" default="36" />
-	<arg name="fourth_state_index" default="47" />
+	<arg name="first_state_index" default="9" />
+	<arg name="second_state_index" default="13" />
+	<arg name="third_state_index" default="18" />
+	<arg name="fourth_state_index" default="31" />
 	<arg name="fifth_state_index" default="113" />
 	<arg name="sixth_state_index" default="137" />
 	<arg name="seventh_state_index" default="159" />

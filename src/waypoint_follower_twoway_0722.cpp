@@ -350,7 +350,7 @@ void process() {
 			ROS_INFO("CURRENT TARGET STATE INDEX=%d, MISSION_INDEX=%d, DIST=%f, PARKING_COUNT=%d", next_mission_index_, next_mission_state_, dist,parking_count_);	
 			
 
-                        if(dist < 2.0 && next_mission_state_ == 1) {
+            if(dist < 2.0 && next_mission_state_ == 1) {
 				while(1){
 					ROS_INFO("PARKING SIGN DETECTED. WAITING FOR SIGN.");
 					ackermann_msg_.header.stamp = ros::Time::now();
@@ -358,10 +358,15 @@ void process() {
                 			ackermann_msg_.drive.steering_angle = 0.0;
 
                 			ackermann_pub_.publish(ackermann_msg_);
+							is_control_ = false;
 					
 					if(!is_parking_area_){
 						lane_number_ += 1;
-						first_state_index_ = ;
+						first_state_index_ = 3;
+						second_state_index_ = 7;
+						third_state_index_ = 11;
+						fourth_state_index_ = 20;
+						is_control_ =true;
 						break;
 					}
 
