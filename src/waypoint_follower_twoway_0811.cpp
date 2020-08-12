@@ -4,7 +4,6 @@
 #include <waypoint_maker/Lane.h>
 #include <waypoint_maker/Waypoint.h>
 #include <waypoint_maker/State.h>
-#include <dynamic_avoidance/DynamicControl.h>
 #include <std_msgs/Bool.h>
 
 
