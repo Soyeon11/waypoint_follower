@@ -318,21 +318,27 @@ void process() {
                 			ackermann_msg_.drive.steering_angle = 0.0;
 
                 			ackermann_pub_.publish(ackermann_msg_);
-							is_control_ = false;
+					is_control_ = false;
 					
-					if(!is_parking_area_){
-						lane_number_ += 1;
-						first_state_index_ = 3;
-						second_state_index_ = 7;
-						third_state_index_ = 11;
-						fourth_state_index_ = 20;
-						is_control_ =true;
-						break;
-					}
+					if(is_parking_test_){	
+						if(!is_parking_area_){
+							lane_number_ += 1;
+							first_state_index_ = 3;
+							second_state_index_ = 7;
+							third_state_index_ = 11;
+							fourth_state_index_ = 20;
+							is_control_ =true;
+							
+							is_parking_test_ = false;
+							break;
+						}
 
-					else if(is_parking_area_){
-						break;
+						else if(is_parking_area_){
+							is_control_ = true;
+							break;
+						}
 					}
+					break;
 				}
 
 			}
@@ -492,7 +498,6 @@ void process() {
                 is_lane_ = false;
 		is_state_change_ = false;
                 is_retrieve_ = false;
-		is_parking_test_ = false;
 		
 		index_msg_.waypoint_index = waypoints_[target_index_].waypoint_index;
 		index_msg_.lane_number = lane_number_;
