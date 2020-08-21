@@ -365,27 +365,29 @@ void parking_info(){
 	//transform to r,theta system
 	float local_r= sqrtf(powf(point_x, 2) + powf(point_y, 2));
 	if ((point_x > 0) && (point_y > 0)){
-		local_theta = atan(point_x/point_y) - cur_course_;
+		local_theta = atan(point_x/point_y)*180/M_PI - cur_course_;
 	}
 	else if ((point_x > 0) && (point_y < 0)){
-		local_theta = 90 - atan(point_y/point_x)  - cur_course_;
+		local_theta = 90 - atan(point_y/point_x)*180/M_PI  - cur_course_;
 	}
 	else if ((point_x < 0) && (point_y < 0)){
-		local_theta = 180 + atan(point_x/point_y) - cur_course_;
+		local_theta = 180 + atan(point_x/point_y)*180/M_PI - cur_course_;
 	}
 	else if ((point_x < 0) && (point_y > 0)){
-		local_theta = 360 + atan(point_x/point_y) - cur_course_;
+		local_theta = 360 + atan(point_x/point_y)*180/M_PI - cur_course_;
 	}
 		
 	if (local_theta > 270) local_theta = local_theta - 360;		//0도 부근에서 날 수 있는 오차를 보정해주기 위함
 	if (local_theta < 270) local_theta = local_theta + 360;
+	
+	float local_theta_rad = local_theta*M_PI/180;	
 	
 	local_x = local_r * cos(local_theta);
 	local_y = -(local_r * sin(local_theta));
 
 	parking_info_msg_.x = local_x;
 	parking_info_msg_.y = local_y;
-	parking_info_msg_.theta = 360 + atan(local_y/local_x);
+	parking_info_msg_.theta = 360 + (atan(local_y/local_x))/M_PI*180;
 	parking_info_pub_.publish(parking_info_msg_);
 }
 
@@ -415,23 +417,24 @@ void transform2local(){
 		float local_r= sqrtf(powf(point_x, 2) + powf(point_y, 2));
 
 		if ((point_x > 0) && (point_y > 0)){
-			local_theta = atan(point_x/point_y) - cur_course_;
+			local_theta = atan(point_x/point_y)*180/M_PI - cur_course_;
 		}
 		else if ((point_x > 0) && (point_y < 0)){
-			local_theta = 90 - atan(point_y/point_x)  - cur_course_;
+			local_theta = 90 - atan(point_y/point_x)*180/M_PI  - cur_course_;
 		}
 		else if ((point_x < 0) && (point_y < 0)){
-			local_theta = 180 + atan(point_x/point_y) - cur_course_;
+			local_theta = 180 + atan(point_x/point_y)*180/M_PI - cur_course_;
 		}
 		else if ((point_x < 0) && (point_y > 0)){
-			local_theta = 360 + atan(point_x/point_y) - cur_course_;
+			local_theta = 360 + atan(point_x/point_y)*180/M_PI - cur_course_;
 		}
 		
 		if (local_theta > 270) local_theta = local_theta - 360;		//0도 부근에서 날 수 있는 오차를 보정해주기 위함
 		if (local_theta < 270) local_theta = local_theta + 360;
+		float local_theta_rad = local_theta*M_PI/180;
 	
-		local_x = local_r * cos(local_theta);
-		local_y = -(local_r * sin(local_theta));
+		local_x = local_r * cos(local_theta_rad);
+		local_y = -(local_r * sin(local_theta_rad));
 	
 		x_list[i] = local_x;
 		y_list[i] = local_y;
