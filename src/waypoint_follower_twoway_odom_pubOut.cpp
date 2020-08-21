@@ -4,6 +4,7 @@
 #include <waypoint_maker/Lane.h>
 #include <waypoint_maker/Waypoint.h>
 #include <waypoint_maker/State.h>
+#include <nav_msgs/Odometry.h>
 #include <std_msgs/Bool.h>
 
 
@@ -94,6 +95,7 @@ bool is_parking_test_;
 
 //pose and course
 geometry_msgs::PoseStamped cur_pose_;
+
 double cur_course_;
 
 
@@ -103,7 +105,8 @@ ros::Publisher ackermann_pub_;
 ros::Publisher index_pub_;
 ros::Publisher state_pub_;
 
-ros::Subscriber pose_sub_;
+ros::Subscriber odom_sub_;
+//ros::Subscriber pose_sub_;
 ros::Subscriber course_sub_;
 ros::Subscriber lane_sub_;
 ros::Subscriber parking_area_sub_;
@@ -126,7 +129,8 @@ void initSetup() {
 	index_pub_ = nh_.advertise<waypoint_maker::Waypoint>("target_state", 10);
 	state_pub_ = nh_.advertise<waypoint_maker::State>("gps_state", 10);
 
-        pose_sub_ = nh_.subscribe("current_pose", 10, &WaypointFollower::PoseCallback, this);
+	odom_sub_ = nh_.subscribe("odom", 10, &WaypointFollower::OdomCallback, this);
+        //pose_sub_ = nh_.subscribe("current_pose", 10, &WaypointFollower::PoseCallback, this);
         course_sub_ = nh_.subscribe("course", 10, &WaypointFollower::CourseCallback, this);
         lane_sub_ = nh_.subscribe("final_waypoints", 10, &WaypointFollower::LaneCallback, this);
 	parking_area_sub_ = nh_.subscribe("parking_area",10,&WaypointFollower::ParkingAreaCallback,this);
@@ -184,12 +188,20 @@ float calcPlaneDist(const geometry_msgs::PoseStamped pose1, const geometry_msgs:
         return dist;
 }
 
+void OdomCallback(const nav_msgs::Odometry::ConstPtr &odom_msg) {
+	cur_pose_.header = odom_msg->header;
+	cur_pose_.pose.position = odom_msg->pose.pose.position;
+        is_pose_ = true;
+	ROS_INFO("CURRENT POSE CALLBACK");
+}
+
+/*
 void PoseCallback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg) {
 	cur_pose_ = *pose_msg;
         is_pose_ = true;
 	ROS_INFO("POSE CALLBACK");
 }
-
+*/
 void CourseCallback(const ackermann_msgs::AckermannDriveStamped::ConstPtr &course_msg) {
 	cur_course_ = course_msg->drive.steering_angle;
         is_course_ = true;
@@ -305,7 +317,7 @@ void process() {
         
 	double speed;
 	double dist;
-        if(is_pose_ && is_course_ && is_lane_ ) {
+        if(is_pose_ && is_course_ && is_lane_) {
                 if(is_state_change_) {
                 	dist = calcPlaneDist(cur_pose_, waypoints_[next_waypoint_index_].pose);
 			// ROS_INFO("CURRENT POSE X=%f, Y=%f", cur_pose_.pose.position.x, cur_pose_.pose.position.y);
@@ -458,6 +470,9 @@ void process() {
 					ros::shutdown();
 			}
 			
+		is_pose_ = false;
+                is_course_ = false;
+
 		}
 
                 if(is_control_) {
@@ -492,13 +507,12 @@ void process() {
 			ackermann_msg_.header.stamp = ros::Time::now();
               		ackermann_msg_.drive.speed = speed;
                		ackermann_msg_.drive.steering_angle = cur_steer;
-
-                	ackermann_pub_.publish(ackermann_msg_);
+        		ackermann_pub_.publish(ackermann_msg_);
                 }
 		parking_trigger_ = false;	
-		is_pose_ = false;
-                is_course_ = false;
-                is_lane_ = false;
+		//is_pose_ = false;
+               // is_course_ = false;
+               // is_lane_ = false;
 		is_state_change_ = false;
                 is_retrieve_ = false;
 		
@@ -510,6 +524,14 @@ void process() {
 		state_msg_.current_state = waypoints_[target_index_].mission_state;
 		state_pub_.publish(state_msg_);
         }
+
+
+	else{
+	ackermann_msg_.header.stamp = ros::Time::now();
+        ackermann_msg_.drive.speed = 0.01;
+        ackermann_msg_.drive.steering_angle = cur_steer;
+        ackermann_pub_.publish(ackermann_msg_);
+	}
 
 }
 };

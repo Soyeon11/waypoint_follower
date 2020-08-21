@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   waypoint_maker
   stop_line_detector
   message_filters
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -53,11 +54,11 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
+ add_message_files(
+   FILES
+   Parking.msg
 #   Message2.msg
-# )
+ )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -111,7 +112,8 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES waypoint_follower
-#  CATKIN_DEPENDS ackermann_msgs geometry_msgs nav_msgs roscpp sensor_msgs std_msgs waypoint_maker stop_line_detector message_filters
+  CATKIN_DEPENDS message_runtime
+#ackermann_msgs geometry_msgs nav_msgs roscpp sensor_msgs std_msgs waypoint_maker stop_line_detector message_filters
 #  DEPENDS system_lib
 )
 
@@ -211,5 +213,5 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(waypoint_follower src/waypoint_follower_twoway_0811.cpp)
+add_executable(waypoint_follower src/waypoint_follower_twoway_parking.cpp)
 target_link_libraries(waypoint_follower ${catkin_LIBRARIES})

@@ -305,7 +305,7 @@ void process() {
         
 	double speed;
 	double dist;
-        if(is_pose_ && is_course_ && is_lane_ ) {
+        if(is_pose_ ) {
                 if(is_state_change_) {
                 	dist = calcPlaneDist(cur_pose_, waypoints_[next_waypoint_index_].pose);
 			// ROS_INFO("CURRENT POSE X=%f, Y=%f", cur_pose_.pose.position.x, cur_pose_.pose.position.y);

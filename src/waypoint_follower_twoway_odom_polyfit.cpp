@@ -4,8 +4,11 @@
 #include <waypoint_maker/Lane.h>
 #include <waypoint_maker/Waypoint.h>
 #include <waypoint_maker/State.h>
+#include <nav_msgs/Odometry.h>
 #include <std_msgs/Bool.h>
 
+#include<iostream>
+#include<iomanip>
 
 #include <vector>
 #include <cmath>
@@ -92,8 +95,15 @@ bool is_parking_area_;
 bool is_parking_test_;
 
 
+//local_system_polifit
+double x_list[15];
+double y_list[15];
+double curvature_;
+
+
 //pose and course
 geometry_msgs::PoseStamped cur_pose_;
+
 double cur_course_;
 
 
@@ -103,7 +113,8 @@ ros::Publisher ackermann_pub_;
 ros::Publisher index_pub_;
 ros::Publisher state_pub_;
 
-ros::Subscriber pose_sub_;
+ros::Subscriber odom_sub_;
+//ros::Subscriber pose_sub_;
 ros::Subscriber course_sub_;
 ros::Subscriber lane_sub_;
 ros::Subscriber parking_area_sub_;
@@ -122,24 +133,25 @@ WaypointFollower() {
 }
 
 void initSetup() {
-        ackermann_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ctrl_cmd", 10);
+    ackermann_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ctrl_cmd", 10);
 	index_pub_ = nh_.advertise<waypoint_maker::Waypoint>("target_state", 10);
 	state_pub_ = nh_.advertise<waypoint_maker::State>("gps_state", 10);
 
-        pose_sub_ = nh_.subscribe("current_pose", 10, &WaypointFollower::PoseCallback, this);
-        course_sub_ = nh_.subscribe("course", 10, &WaypointFollower::CourseCallback, this);
-        lane_sub_ = nh_.subscribe("final_waypoints", 10, &WaypointFollower::LaneCallback, this);
+	odom_sub_ = nh_.subscribe("odom", 10, &WaypointFollower::OdomCallback, this);
+        //pose_sub_ = nh_.subscribe("current_pose", 10, &WaypointFollower::PoseCallback, this);
+    course_sub_ = nh_.subscribe("course", 10, &WaypointFollower::CourseCallback, this);
+    lane_sub_ = nh_.subscribe("final_waypoints", 10, &WaypointFollower::LaneCallback, this);
 	parking_area_sub_ = nh_.subscribe("parking_area",10,&WaypointFollower::ParkingAreaCallback,this);
 
 
 	private_nh_.getParam("/waypoint_follower_node/init_speed", init_speed_);
-        private_nh_.getParam("/waypoint_follower_node/decelate_speed", decelate_speed_);
-        private_nh_.getParam("/waypoint_follower_node/accelate_speed", accelate_speed_);
+    private_nh_.getParam("/waypoint_follower_node/decelate_speed", decelate_speed_);
+    private_nh_.getParam("/waypoint_follower_node/accelate_speed", accelate_speed_);
 	private_nh_.getParam("/waypoint_follower_node/backward_movement_speed", backward_movement_speed_);
 
-        private_nh_.getParam("/waypoint_follower_node/init_lookahead_distance", init_lookahead_dist_);
-        private_nh_.getParam("/waypoint_follower_node/decelate_lookahead_distance", decelate_lookahead_dist_);
-        private_nh_.getParam("/waypoint_follower_node/accelate_lookahead_distance", accelate_lookahead_dist_);
+    private_nh_.getParam("/waypoint_follower_node/init_lookahead_distance", init_lookahead_dist_);
+    private_nh_.getParam("/waypoint_follower_node/decelate_lookahead_distance", decelate_lookahead_dist_);
+    private_nh_.getParam("/waypoint_follower_node/accelate_lookahead_distance", accelate_lookahead_dist_);
 
 	private_nh_.getParam("/waypoint_follower_node/current_mission_state", current_mission_state_);
 	
@@ -154,20 +166,20 @@ void initSetup() {
 	private_nh_.getParam("/waypoint_follower_node/nineth_state_index", nineth_state_index_);	
 	private_nh_.getParam("/waypoint_follower_node/tenth_state_index", tenth_state_index_);
 	private_nh_.getParam("/waypoint_follower_node/eleventh_state_index", eleventh_state_index_);
-        private_nh_.getParam("/waypoint_follower_node/twelveth_state_index", twelveth_state_index_);
+    private_nh_.getParam("/waypoint_follower_node/twelveth_state_index", twelveth_state_index_);
 
 	ROS_INFO("WAYPOINT FOLLOWER INITIALIZED.");
 
 
 	parking_count_ = 0;
 
-        isfirst_steer_ = true;
-        prev_steer_ = 0;
+    isfirst_steer_ = true;
+    prev_steer_ = 0;
 
 	next_mission_state_ = current_mission_state_ + 1;
-        is_pose_ = false;
-        is_course_ = false;
-        is_lane_ = false;
+    is_pose_ = false;
+    is_course_ = false;
+    is_lane_ = false;
 	is_state_change_ = false;
 	is_control_ = true;
 	parking_trigger_ = false;
@@ -176,7 +188,13 @@ void initSetup() {
 	is_parking_area_ = true; //is_parking_area true이면 경로 유지
 	is_parking_test_ = false; //callback이 들어오면 true
 
+	cur_course_ = 0.0;
 	lane_number_ = 0;
+	waypoints_size_ = 0;
+
+	x_list[15] ={0.0,};
+	y_list[15] ={0.0,};
+	curvature_=0.0;
 }
 
 float calcPlaneDist(const geometry_msgs::PoseStamped pose1, const geometry_msgs::PoseStamped pose2) {
@@ -184,15 +202,23 @@ float calcPlaneDist(const geometry_msgs::PoseStamped pose1, const geometry_msgs:
         return dist;
 }
 
+void OdomCallback(const nav_msgs::Odometry::ConstPtr &odom_msg) {
+	cur_pose_.header = odom_msg->header;
+	cur_pose_.pose.position = odom_msg->pose.pose.position;
+        is_pose_ = true;
+	ROS_INFO("CURRENT POSE CALLBACK");
+}
+
+/*
 void PoseCallback(const geometry_msgs::PoseStamped::ConstPtr &pose_msg) {
 	cur_pose_ = *pose_msg;
         is_pose_ = true;
 	ROS_INFO("POSE CALLBACK");
 }
-
+*/
 void CourseCallback(const ackermann_msgs::AckermannDriveStamped::ConstPtr &course_msg) {
 	cur_course_ = course_msg->drive.steering_angle;
-        is_course_ = true;
+    is_course_ = true;
 	ROS_INFO("COURSE CALLBACK");
 }
 
@@ -203,9 +229,9 @@ void ParkingAreaCallback(const std_msgs::Bool::ConstPtr &parking_area_msg) {
 }
 
 void LaneCallback(const waypoint_maker::Lane::ConstPtr &lane_msg) {
-        waypoints_.clear();
-        waypoints_ = lane_msg->waypoints;
-        waypoints_size_ = waypoints_.size();
+    waypoints_.clear();
+    waypoints_ = lane_msg->waypoints;
+    waypoints_size_ = waypoints_.size();
 	ROS_INFO("LANE CALLBACK");
 
 	// ROS_INFO("%d WAYPOINTS RECEIVED.", waypoints_size_);
@@ -278,6 +304,11 @@ double calcSteeringAngle() {
         double angle = heading * 180 / 3.141592;
         double true_angle;
 
+	if( waypoints_size_>20){
+		transform2local();
+		curvature_ = polifit_with_localsystem();
+	}
+
         if(dx>=0 && dy>0) true_angle = 90.0 - angle;
         else if(dx>=0 && dy<0) true_angle = 90.0 - angle;
         else if(dx<0 && dy<0) true_angle = 270.0 - angle;
@@ -300,12 +331,133 @@ double calcSteeringAngle() {
         return cur_steer;
 }
 
+void transform2local(){
+	x_list[15] = {0,};
+	y_list[15] = {0,};
+	for (int i=0;i<15;i++){
+		double local_x = 0.0;
+		double local_y = 0.0;
+
+		double point_x = 0.0;
+		double point_y = 0.0;
+
+		//double local_r = 0.0;
+		double local_theta = 0.0;
+
+		double temp_wayposition_x = waypoints_[i].pose.pose.position.x;
+		double temp_wayposition_y = waypoints_[i].pose.pose.position.y;
+		double temp_posepoint_x = cur_pose_.pose.position.x;
+		double temp_posepoint_y = cur_pose_.pose.position.y;
+		ROS_INFO("way,pose =  %f,%f",temp_wayposition_x,temp_posepoint_x);
+		point_x = temp_wayposition_x - temp_posepoint_x;
+		point_y = temp_wayposition_y - temp_posepoint_y;
+		ROS_INFO("point_offset = %f,%f",point_x,point_y);
+
+	//transform to r,theta system
+		float local_r= sqrtf(powf(point_x, 2) + powf(point_y, 2));
+
+		if ((point_x > 0) && (point_y > 0)){
+			local_theta = atan(point_x/point_y) - cur_course_;
+		}
+		else if ((point_x > 0) && (point_y < 0)){
+			local_theta = 90 - atan(point_y/point_x)  - cur_course_;
+		}
+		else if ((point_x < 0) && (point_y < 0)){
+			local_theta = 180 + atan(point_x/point_y) - cur_course_;
+		}
+		else if ((point_x < 0) && (point_y > 0)){
+			local_theta = 360 + atan(point_x/point_y) - cur_course_;
+		}
+		
+		if (local_theta > 270) local_theta = local_theta - 360;		//0도 부근에서 날 수 있는 오차를 보정해주기 위함
+		if (local_theta < 270) local_theta = local_theta + 360;
+	
+		local_x = local_r * cos(local_theta);
+		local_y = -(local_r * sin(local_theta));
+	
+		x_list[i] = local_x;
+		y_list[i] = local_y;
+		ROS_INFO("local_point= %f,%f",local_r,local_theta);
+	}
+}
+
+double polifit_with_localsystem(){
+    	int i,j,k,n,N;
+    	cout.precision(4);                        //set precision
+    	cout.setf(ios::fixed);
+	N = 15;
+	n = 2;                             // n is the degree of Polynomial 
+    	double X[2*n+1];                        //Array that will store the values of sigma(xi),sigma(xi^2),sigma(xi^3)....sigma(xi^2n)
+    	for (i=0;i<2*n+1;i++){
+        	X[i]=0;
+        	for (j=0;j<N;j++) 
+			X[i]=X[i]+pow(x_list[j],i);        //consecutive positions of the array will store N,sigma(xi),sigma(xi^2),sigma(xi^3)....sigma(xi^2n)
+    	}
+    	double B[n+1][n+2],a[n+1];            //B is the Normal matrix(augmented) that will store the equations, 'a' is for value of the final coefficients
+    	for (i=0;i<=n;i++){
+        	for (j=0;j<=n;j++)
+        		B[i][j]=X[i+j];
+		}            //Build the Normal matrix by storing the corresponding coefficients at the right positions except the last column of the matrix
+    	double Y[n+1];                    //Array to store the values of sigma(yi),sigma(xi*yi),sigma(xi^2*yi)...sigma(xi^n*yi)
+    	for (i=0;i<n+1;i++){    
+        	Y[i]=0;
+        	for (j=0;j<N;j++) 
+			Y[i]=Y[i]+pow(x_list[j],i)*y_list[j];        //consecutive positions will store sigma(yi),sigma(xi*yi),sigma(xi^2*yi)...sigma(xi^n*yi)
+    	}
+    	for (i=0;i<=n;i++)
+        	B[i][n+1]=Y[i];                //load the values of Y as the last column of B(Normal Matrix but augmented)
+    	n=n+1;                //n is made n+1 because the Gaussian Elimination part below was for n equations, but here n is the degree of polynomial and for n degree we get n+1 equations
+    	for (i=0;i<n;i++){                    //From now Gaussian Elimination starts(can be ignored) to solve the set of linear equations (Pivotisation)
+        	for (k=i+1;k<n;k++){
+            	if (B[i][i]<B[k][i]){
+                	for (j=0;j<=n;j++){
+            			double temp=B[i][j];
+            			B[i][j]=B[k][j];
+            			B[k][j]=temp;
+            		}
+				}
+			}
+		}
+	
+     
+    	for (i=0;i<n-1;i++){            //loop to perform the gauss elimination
+        	for (k=i+1;k<n;k++){
+                double t=B[k][i]/B[i][i];
+            	for (j=0;j<=n;j++)
+            		B[k][j]=B[k][j]-t*B[i][j];    //make the elements below the pivot elements equal to zero or elimnate the variables
+            }
+		}
+    	for (i=n-1;i>=0;i--)                //back-substitution
+		{                        //x is an array whose values correspond to the values of x,y,z..
+        	a[i]=B[i][n];                //make the variable to be calculated equal to the rhs of the last equation
+        	for (j=0;j<n;j++){
+            		if (j!=i)            //then subtract all the lhs values except the coefficient of the variable whose value is being calculated
+               			a[i]=a[i]-B[i][j]*a[j];
+			}
+       		a[i]=a[i]/B[i][i];            //now finally divide the rhs by the coefficient of the variable to be calculated
+    	}
+/*    	cout<<"\nThe values of the coefficients are as follows:\n";
+    	for (i=0;i<n;i++)
+        	cout<<"x^"<<i<<"="<<a[i]<<endl;            // Print the values of x^0,x^1,x^2,x^3,....*/    
+    	cout<<"\nHence the fitted Polynomial is given by:\ny=";
+    	for (i=0;i<n;i++)
+        	cout<<" + ("<<a[i]<<")"<<"x^"<<i;
+    	cout<<"\n";
+
+	double temp_curvature = a[2]; //coefficient of x^2
+	ROS_INFO("CURVATURE: %f", temp_curvature);
+
+	return temp_curvature;
+}
+
+
 void process() {
 	is_control_ = true;
         
 	double speed;
 	double dist;
-        if(is_pose_ && is_course_ && is_lane_ ) {
+
+        if(is_pose_ && is_course_ && is_lane_) {
                 if(is_state_change_) {
                 	dist = calcPlaneDist(cur_pose_, waypoints_[next_waypoint_index_].pose);
 			// ROS_INFO("CURRENT POSE X=%f, Y=%f", cur_pose_.pose.position.x, cur_pose_.pose.position.y);
@@ -328,8 +480,8 @@ void process() {
 							lane_number_ += 1;
 							first_state_index_ = 3;
 							second_state_index_ = 7;
-							third_state_index_ = 11;
-							fourth_state_index_ = 20;
+							third_state_index_ = 14;
+							fourth_state_index_ = 23;
 							is_control_ =true;
 							
 							is_parking_test_ = false;
@@ -346,7 +498,7 @@ void process() {
 
 			}
 		
-                        else if( dist < 1.5 && next_mission_state_ == 2) {
+                        else if( dist < 2.5 && next_mission_state_ == 2) {
 
 				if(parking_count_ == 0) {
 					parking_trigger_ = true;
@@ -378,7 +530,7 @@ void process() {
 
 			}
 
-			else if( dist < 2.5 && next_mission_state_ == 3) {
+			else if( dist < 3.5 && next_mission_state_ == 3) {
 				ROS_INFO("PARKING MISSION IS DONE.");
 				if(parking_count_ == 1) {
 
@@ -457,13 +609,11 @@ void process() {
 					
 					ros::shutdown();
 			}
-			
 		}
 
                 if(is_control_) {
-			
 			double cur_steer = calcSteeringAngle();
-			
+			//curvature 계산이 잘 된다면 아래처럼 구간별 제어가 아닌 curvature를 통한 제어를 넣는다.
                         if((parking_count_==0)&&(is_backward_==false)){
                                 speed = decelate_speed_;
                                 lookahead_dist_= decelate_lookahead_dist_;
@@ -498,9 +648,11 @@ void process() {
 		parking_trigger_ = false;	
 		is_pose_ = false;
                 is_course_ = false;
-                is_lane_ = false;
+                //is_lane_ = false;
 		is_state_change_ = false;
                 is_retrieve_ = false;
+
+		//curvature 정상적으로 산출되면, 적당한 곡선의 기준치를 파악하여 초기화해주고, 이것보다 크면 감속,작으면 가속하도록 하는 제어를 넣어준다.curvature_ = 0.6;
 		
 		index_msg_.waypoint_index = waypoints_[target_index_].waypoint_index;
 		index_msg_.lane_number = lane_number_;
