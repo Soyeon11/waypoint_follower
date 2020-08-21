@@ -11,7 +11,7 @@
 	<arg name="first_state_index" default="5" />
 	<arg name="second_state_index" default="9" />
 	<arg name="third_state_index" default="17" />
-	<arg name="fourth_state_index" default="28" />
+	<arg name="fourth_state_index" default="27" />
 	<arg name="fifth_state_index" default="1130" />
 	<arg name="sixth_state_index" default="1140" />
 	<arg name="seventh_state_index" default="1150" />
@@ -40,4 +40,4 @@
 		<param name="lane_final" value="$(arg lane_final)" />
 	</node>
 
-</launch>s
+</launch>

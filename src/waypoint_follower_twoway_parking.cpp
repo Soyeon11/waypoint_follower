@@ -145,6 +145,7 @@ void initSetup() {
     ackermann_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("ctrl_cmd", 10);
 	index_pub_ = nh_.advertise<waypoint_maker::Waypoint>("target_state", 10);
 	state_pub_ = nh_.advertise<waypoint_maker::State>("gps_state", 10);
+	current_state_pub_ = nh_.advertise<waypoint_maker::State>("current_state", 10);
 
 	parking_info_pub_ = nh_.advertise<geometry_msgs::Pose2D>("parking_info", 10);// for LiDAR_parking
 
@@ -686,16 +687,16 @@ void process() {
                 if(is_control_) {
 			double cur_steer = calcSteeringAngle();
 			//curvature 계산이 잘 된다면 아래처럼 구간별 제어가 아닌 curvature를 통한 제어를 넣는다.
-			if (curvature_ > 0.6) {
+			/*if (curvature_ > 0.6) {
                                 speed = decelate_speed_;
                                 lookahead_dist_= decelate_lookahead_dist_;
 			}
 			else if (curvature_<0.6){
                                 speed = init_speed_;
                                 lookahead_dist_= init_lookahead_dist_;
-			}
+			}*/
 
-                        else if((parking_count_==0)&&(is_backward_==false)){
+                        if((parking_count_==0)&&(is_backward_==false)){
                                 speed = decelate_speed_;
                                 lookahead_dist_= decelate_lookahead_dist_;
                         }
@@ -744,7 +745,7 @@ void process() {
 		state_pub_.publish(state_msg_);
 
 		current_state_msg_.current_state = waypoints_[0].mission_state;//for Vision
-		current_state_pub_.publish(current_state_msg_);
+		//current_state_pub_.publish(current_state_msg_);
         }
 
 }
