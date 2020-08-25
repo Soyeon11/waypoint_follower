@@ -49,7 +49,7 @@ vector<waypoint_maker::Waypoint> waypoints_;
 //speed
 double init_speed_;
 double decelate_speed_;
-double accelate_speed_;
+//double accelate_speed_;
 double parking_speed_;
 double backward_movement_speed_;
 
@@ -57,7 +57,8 @@ double backward_movement_speed_;
 double lookahead_dist_;
 double init_lookahead_dist_;
 double decelate_lookahead_dist_;
-double accelate_lookahead_dist_;
+//double accelate_lookahead_dist_;
+double parking_lookahead_dist_;
 
 //state, index, lane number
 int current_mission_state_;
@@ -158,12 +159,12 @@ void initSetup() {
 
 	private_nh_.getParam("/waypoint_follower_node/init_speed", init_speed_);
     private_nh_.getParam("/waypoint_follower_node/decelate_speed", decelate_speed_);
-    private_nh_.getParam("/waypoint_follower_node/accelate_speed", accelate_speed_);
+    private_nh_.getParam("/waypoint_follower_node/parking_speed", parking_speed_);
 	private_nh_.getParam("/waypoint_follower_node/backward_movement_speed", backward_movement_speed_);
 
     private_nh_.getParam("/waypoint_follower_node/init_lookahead_distance", init_lookahead_dist_);
     private_nh_.getParam("/waypoint_follower_node/decelate_lookahead_distance", decelate_lookahead_dist_);
-    private_nh_.getParam("/waypoint_follower_node/accelate_lookahead_distance", accelate_lookahead_dist_);
+    private_nh_.getParam("/waypoint_follower_node/parking_lookahead_distance", parking_lookahead_dist_);
 
 	private_nh_.getParam("/waypoint_follower_node/current_mission_state", current_mission_state_);
 	
@@ -185,7 +186,7 @@ void initSetup() {
 	ROS_INFO("WAYPOINT FOLLOWER INITIALIZED.");
 
 
-	parking_count_ = 0;
+	parking_count_ = -1;
 	parking_test_count_=0;
 	lookahead_dist_ = 7.0;
 
@@ -358,8 +359,10 @@ void parking_info(){
 
 	float local_theta = 0.0;
 
-	float temp_wayposition_x = waypoints_[next_waypoint_index_+1].pose.pose.position.x;
-	float temp_wayposition_y = waypoints_[next_waypoint_index_+1].pose.pose.position.y;
+	float temp_wayposition_x = 323019.910050406;
+	       //	waypoints_[next_waypoint_index_+6].pose.pose.position.x; //calc with second_state_index
+	float temp_wayposition_y = 4164659.9735871;
+       		//waypoints_[next_waypoint_index_+6].pose.pose.position.y;
 	float temp_posepoint_x = cur_pose_.pose.position.x;
 	float temp_posepoint_y = cur_pose_.pose.position.y;
 
@@ -567,6 +570,7 @@ void process() {
 
 						else if(is_parking_area_){
 							is_control_ = true;
+							parking_count_++;
 							break;
 						}
 					}
@@ -711,8 +715,8 @@ void process() {
 			*/
 
 			if((parking_count_==0)&&(is_backward_==false)){
-                                speed = decelate_speed_;
-                                lookahead_dist_= decelate_lookahead_dist_;
+                                speed = parking_speed_;
+                                lookahead_dist_= parking_lookahead_dist_;
                         }
                         else if(parking_count_ == 1 || is_backward_ ) {
 				speed = backward_movement_speed_;
@@ -723,14 +727,14 @@ void process() {
 				lookahead_dist_=5.0;
 			}
 
-			else if(abs(curvature_) > 0.03||abs(cur_steer) > 15) {
-				speed = decelate_speed_;
-				//TODO:LD
+			else if(abs(curvature_) > 0.03||abs(cur_steer) > 15) { //curvature value need to change
+				speed = decelate_speed_; //decel = 2.5
+				lookahead_dist_ = decelate_lookahead_dist_;
 			}
-                        else if((waypoints_[target_index_].mission_state)==10) {
+                       /* else if((waypoints_[target_index_].mission_state)==10) {
                                 speed=accelate_speed_;
                                 lookahead_dist_=accelate_lookahead_dist_;
-			}
+			}*/
 
                         else {
                             speed = init_speed_;

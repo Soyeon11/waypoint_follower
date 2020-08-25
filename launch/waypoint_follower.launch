@@ -1,12 +1,12 @@
 <launch>
 
-	<arg name="init_speed" default="3.0" />
-	<arg name="decelate_speed" default="1.5" />
-	<arg name="accelate_speed" default="5.0" /> 
+	<arg name="init_speed" default="4.0" />
+	<arg name="decelate_speed" default="2.5" />
+	<arg name="parking_speed" default="1.5" /> 
 	<arg name="backward_movement_speed" default="-1.8" /> 
 	<arg name="init_lookahead_distance" default="7.0" />
-	<arg name="decelate_lookahead_distance" default="1.5" />
-	<arg name="accelate_lookahead_distance" default="10.0" />
+	<arg name="decelate_lookahead_distance" default="6.0" />
+	<arg name="parking_lookahead_distance" default="1.5" />
 	<arg name="current_mission_state" default="0" />
 	<arg name="first_state_index" default="10" />
 	<arg name="second_state_index" default="16" />
@@ -22,11 +22,11 @@
 	<node name="waypoint_follower_node" pkg="waypoint_follower" type="waypoint_follower" output="screen">
 		<param name="init_speed" value="$(arg init_speed)" />
 		<param name="decelate_speed" value="$(arg decelate_speed)" />
-		<param name="accelate_speed" value="$(arg accelate_speed)" />
+		<param name="parking_speed" value="$(arg accelate_speed)" />
 		<param name="backward_movement_speed" value="$(arg backward_movement_speed)" />
 		<param name="init_lookahead_distance" value="$(arg init_lookahead_distance)" />
 		<param name="decelate_lookahead_distance" value="$(arg decelate_lookahead_distance)" />
-		<param name="accelate_lookahead_distance" value="$(arg accelate_lookahead_distance)" />
+		<param name="parking_lookahead_distance" value="$(arg accelate_lookahead_distance)" />
 		<param name="current_mission_state" value="$(arg current_mission_state)" />
 		<param name="first_state_index" value="$(arg first_state_index)" />
 		<param name="second_state_index" value="$(arg second_state_index)" />
