@@ -504,12 +504,12 @@ double polifit_with_localsystem(){
 /*    	cout<<"\nThe values of the coefficients are as follows:\n";
     	for (i=0;i<n;i++)
         	cout<<"x^"<<i<<"="<<a[i]<<endl;            // Print the values of x^0,x^1,x^2,x^3,....*/    
-    	cout<<"\nHence the fitted Polynomial is given by:\ny=";
+/*    	cout<<"\nHence the fitted Polynomial is given by:\ny=";
     	for (i=0;i<n;i++)
         	cout<<" + ("<<a[i]<<")"<<"x^"<<i;
-    	cout<<"\n";
+    	cout<<"\n";*/
 
-	double temp_curvature = a[2]; //coefficient of x^2
+	double temp_curvature = 2 * a[2]/sqrtf(powf(1+powf(a[1],2),3)); //coefficient of x^2
 	ROS_INFO("CURVATURE: %f", temp_curvature);
 
 	return temp_curvature;
