@@ -1,18 +1,18 @@
 <launch>
 
 	<arg name="init_speed" default="3.0" />
-	<arg name="decelate_speed" default="2.0" />
+	<arg name="decelate_speed" default="1.5" />
 	<arg name="accelate_speed" default="5.0" /> 
-	<arg name="backward_movement_speed" default="-2.0" /> 
+	<arg name="backward_movement_speed" default="-1.8" /> 
 	<arg name="init_lookahead_distance" default="7.0" />
-	<arg name="decelate_lookahead_distance" default="2.5" />
+	<arg name="decelate_lookahead_distance" default="1.5" />
 	<arg name="accelate_lookahead_distance" default="10.0" />
 	<arg name="current_mission_state" default="0" />
-	<arg name="first_state_index" default="5" />
-	<arg name="second_state_index" default="9" />
-	<arg name="third_state_index" default="17" />
-	<arg name="fourth_state_index" default="27" />
-	<arg name="fifth_state_index" default="1130" />
+	<arg name="first_state_index" default="10" />
+	<arg name="second_state_index" default="16" />
+	<arg name="third_state_index" default="21" />
+	<arg name="fourth_state_index" default="35" />
+	<arg name="fifth_state_index" default="49" />
 	<arg name="sixth_state_index" default="1140" />
 	<arg name="seventh_state_index" default="1150" />
 	<arg name="eighth_state_index" default="1160" />

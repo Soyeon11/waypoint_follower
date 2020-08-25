@@ -187,6 +187,7 @@ void initSetup() {
 
 	parking_count_ = 0;
 	parking_test_count_=0;
+	lookahead_dist_ = 7.0;
 
     isfirst_steer_ = true;
     prev_steer_ = 0;
@@ -334,14 +335,17 @@ double calcSteeringAngle() {
         if(cur_steer<-180) cur_steer = 360 -cur_course_ + true_angle;
         else if(cur_steer>180) cur_steer = true_angle - cur_course_ -360 ;
 	
+	//if (abs(cur_steer - prev_steer_)>40) cur_steer * 0.7;
 
         if(isfirst_steer_) {
                 prev_steer_ = cur_steer;
                 isfirst_steer_ = false;
         }
         else {
-                if(abs(cur_steer - prev_steer_) < 5.0) cur_steer = prev_steer_;
+               // if(abs(cur_steer - prev_steer_) < 5.0) cur_steer = prev_steer_;
         }
+
+
 
         return cur_steer;
 }
@@ -374,11 +378,11 @@ void parking_info(){
 		local_theta = 180 + atan(point_x/point_y)*180/M_PI - cur_course_;
 	}
 	else if ((point_x < 0) && (point_y > 0)){
-		local_theta = 360 + atan(point_x/point_y)*180/M_PI - cur_course_;
+		local_theta = 270 - atan(point_y/point_x)*180/M_PI - cur_course_;
 	}
 		
 	if (local_theta > 270) local_theta = local_theta - 360;		//0도 부근에서 날 수 있는 오차를 보정해주기 위함
-	if (local_theta < 270) local_theta = local_theta + 360;
+	if (local_theta < -270) local_theta = local_theta + 360;
 	
 	float local_theta_rad = local_theta*M_PI/180;	
 	
@@ -426,11 +430,11 @@ void transform2local(){
 			local_theta = 180 + atan(point_x/point_y)*180/M_PI - cur_course_;
 		}
 		else if ((point_x < 0) && (point_y > 0)){
-			local_theta = 360 + atan(point_x/point_y)*180/M_PI - cur_course_;
+			local_theta = 270 - atan(point_y/point_x)*180/M_PI - cur_course_;
 		}
 		
 		if (local_theta > 270) local_theta = local_theta - 360;		//0도 부근에서 날 수 있는 오차를 보정해주기 위함
-		if (local_theta < 270) local_theta = local_theta + 360;
+		if (local_theta < -270) local_theta = local_theta + 360;
 		float local_theta_rad = local_theta*M_PI/180;
 	
 		local_x = local_r * cos(local_theta_rad);
@@ -624,18 +628,30 @@ void process() {
 			
                         else if( dist < 2.0 && next_mission_state_ == 4) {
 					ROS_INFO("STOP SIGN DETECTED");
-					ackermann_msg_.header.stamp = ros::Time::now();
+					/*ackermann_msg_.header.stamp = ros::Time::now();
               				ackermann_msg_.drive.speed = 0.0;
                 			ackermann_msg_.drive.steering_angle = 0.0;
 
                 			ackermann_pub_.publish(ackermann_msg_);
 					is_control_ = false;
 
+					*/
+
+					lane_number_  = 0;
 			}
 			
                         else if(dist < 6.0 && next_mission_state_ == 5) {
                            	//TODO:intersection
+					ackermann_msg_.header.stamp = ros::Time::now();
+              				ackermann_msg_.drive.speed = 0.0;
+                			ackermann_msg_.drive.steering_angle = 0.0;
+                			
+					
+					ackermann_pub_.publish(ackermann_msg_);
+					is_control_ = false;
+		
 			}
+
 
 			else if(dist < 2.0 && next_mission_state_ == 6) {
 					ROS_INFO("PASS CONTROL TO STATIC AVOIDANCE NODE.");
@@ -683,23 +699,18 @@ void process() {
 					
 					ros::shutdown();
 			}
-		is_pose_ = false;
-                is_course_ = false;	
 		}
 
                 if(is_control_) {
 			double cur_steer = calcSteeringAngle();
 			//curvature 계산이 잘 된다면 아래처럼 구간별 제어가 아닌 curvature를 통한 제어를 넣는다.
-			/*if (curvature_ > 0.6) {
+			/*if (abs(curvature_) > 0.3) {
                                 speed = decelate_speed_;
                                 lookahead_dist_= decelate_lookahead_dist_;
 			}
-			else if (curvature_<0.6){
-                                speed = init_speed_;
-                                lookahead_dist_= init_lookahead_dist_;
-			}*/
+			*/
 
-                        if((parking_count_==0)&&(is_backward_==false)){
+			if((parking_count_==0)&&(is_backward_==false)){
                                 speed = decelate_speed_;
                                 lookahead_dist_= decelate_lookahead_dist_;
                         }
@@ -711,10 +722,15 @@ void process() {
                             	speed = init_speed_;
 				lookahead_dist_=5.0;
 			}
+
+			else if(abs(curvature_) > 0.03||abs(cur_steer) > 15) {
+				speed = decelate_speed_;
+				//TODO:LD
+			}
                         else if((waypoints_[target_index_].mission_state)==10) {
                                 speed=accelate_speed_;
                                 lookahead_dist_=accelate_lookahead_dist_;
-                        }
+			}
 
                         else {
                             speed = init_speed_;
@@ -731,8 +747,8 @@ void process() {
                 	ackermann_pub_.publish(ackermann_msg_);
                 }
 		parking_trigger_ = false;	
-		//is_pose_ = false;
-                //is_course_ = false;
+		is_pose_ = false;
+                is_course_ = false;
                 //is_lane_ = false;
 		is_state_change_ = false;
                 is_retrieve_ = false;
