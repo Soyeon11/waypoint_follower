@@ -286,7 +286,7 @@ double calcSteeringAngle() {
                     target_index_=i;
                     waypoint_target_index_ = waypoints_[i].waypoint_index;
 		    ROS_INFO("target_index: %d ld: %f",target_index_,lookahead_dist_);
-                    if(/*is_retrieve_||*/ parking_count_ == 1 ){
+                    if(parking_count_ > 0 ){
                         if((waypoints_[i].waypoint_index - waypoints_[0].waypoint_index == 1) || (waypoints_[i].waypoint_index - waypoints_[0].waypoint_index == 2  )) {
                             ROS_INFO("1");
                             target_index_ = i;
@@ -319,24 +319,27 @@ double calcSteeringAngle() {
 
         double heading = atan(dy/dx);
         double angle = heading * 180 / 3.141592;
-        double true_angle;
+        double  cur_steer;
 
 	if( waypoints_size_>20){
 		transform2local();
 		curvature_ = polifit_with_localsystem();
 	}
 
-        if(dx>=0 && dy>0) true_angle = 90.0 - angle;
-        else if(dx>=0 && dy<0) true_angle = 90.0 - angle;
-        else if(dx<0 && dy<0) true_angle = 270.0 - angle;
-        else if(dx<0 && dy>0) true_angle = 270.0 - angle;
+        if(dx>=0 && dy>0) {
+		cur_steer = 90.0 - angle - cur_course_;
+        	if(cur_steer<-270) cur_steer = cur_steer + 360;
+	}
+	else if(dx>=0 && dy<0) cur_steer = 90.0 - angle - cur_course_;
+        else if(dx<0 && dy<0) cur_steer = 270.0 - cur_course_;
+        else if(dx<0 && dy>0) {
+		cur_steer = 270.0 - angle - cur_course_;
+		if(cur_steer>270) cur_steer= cur_steer-360 ; 
+	}
 
-        double cur_steer = true_angle - cur_course_ ;
-
-        if(cur_steer<-180) cur_steer = 360 -cur_course_ + true_angle;
-        else if(cur_steer>180) cur_steer = true_angle - cur_course_ -360 ;
+        if(cur_steer<-180) cur_steer = 360 +cur_steer;
+        else if(cur_steer>180) cur_steer = cur_steer -360 ;
 	
-	//if (abs(cur_steer - prev_steer_)>40) cur_steer * 0.7;
 
         if(isfirst_steer_) {
                 prev_steer_ = cur_steer;
@@ -358,11 +361,11 @@ void parking_info(){
 	float point_y = 0.0;
 
 	float local_theta = 0.0;
+	int mission_index_err = second_state_index_ - first_state_index_;
 
-	float temp_wayposition_x = 323019.910050406;
-	       //	waypoints_[next_waypoint_index_+6].pose.pose.position.x; //calc with second_state_index
-	float temp_wayposition_y = 4164659.9735871;
-       		//waypoints_[next_waypoint_index_+6].pose.pose.position.y;
+	float temp_wayposition_x = waypoints_.at(next_waypoint_index_ + mission_index_err).pose.pose.position.x;
+	float temp_wayposition_y = waypoints_.at(next_waypoint_index_ + mission_index_err).pose.pose.position.y;
+	
 	float temp_posepoint_x = cur_pose_.pose.position.x;
 	float temp_posepoint_y = cur_pose_.pose.position.y;
 
@@ -373,6 +376,7 @@ void parking_info(){
 	float local_r= sqrtf(powf(point_x, 2) + powf(point_y, 2));
 	if ((point_x > 0) && (point_y > 0)){
 		local_theta = atan(point_x/point_y)*180/M_PI - cur_course_;
+		if (local_theta < -270) local_theta = local_theta + 360;
 	}
 	else if ((point_x > 0) && (point_y < 0)){
 		local_theta = 90 - atan(point_y/point_x)*180/M_PI  - cur_course_;
@@ -382,10 +386,9 @@ void parking_info(){
 	}
 	else if ((point_x < 0) && (point_y > 0)){
 		local_theta = 270 - atan(point_y/point_x)*180/M_PI - cur_course_;
+		if (local_theta > 270) local_theta = local_theta - 360;		//0도 부근에서 날 수 있는 오차를 보정해주기 위함
 	}
 		
-	if (local_theta > 270) local_theta = local_theta - 360;		//0도 부근에서 날 수 있는 오차를 보정해주기 위함
-	if (local_theta < -270) local_theta = local_theta + 360;
 	
 	float local_theta_rad = local_theta*M_PI/180;	
 	
@@ -425,6 +428,7 @@ void transform2local(){
 
 		if ((point_x > 0) && (point_y > 0)){
 			local_theta = atan(point_x/point_y)*180/M_PI - cur_course_;
+			if (local_theta < -270) local_theta = local_theta + 360;
 		}
 		else if ((point_x > 0) && (point_y < 0)){
 			local_theta = 90 - atan(point_y/point_x)*180/M_PI  - cur_course_;
@@ -434,10 +438,9 @@ void transform2local(){
 		}
 		else if ((point_x < 0) && (point_y > 0)){
 			local_theta = 270 - atan(point_y/point_x)*180/M_PI - cur_course_;
+			if (local_theta > 270) local_theta = local_theta - 360;		//0도 부근에서 날 수 있는 오차를 보정해주기 위함
 		}
 		
-		if (local_theta > 270) local_theta = local_theta - 360;		//0도 부근에서 날 수 있는 오차를 보정해주기 위함
-		if (local_theta < -270) local_theta = local_theta + 360;
 		float local_theta_rad = local_theta*M_PI/180;
 	
 		local_x = local_r * cos(local_theta_rad);
@@ -512,7 +515,7 @@ double polifit_with_localsystem(){
         	cout<<" + ("<<a[i]<<")"<<"x^"<<i;
     	cout<<"\n";*/
 
-	double temp_curvature = 2 * a[2]/sqrtf(powf(1+powf(a[1],2),3)); //coefficient of x^2
+	double temp_curvature = a[2]; //coefficient of x^2
 	ROS_INFO("CURVATURE: %f", temp_curvature);
 
 	return temp_curvature;
@@ -564,6 +567,7 @@ void process() {
 					else if(is_parking_test_){	
 						if(!is_parking_area_){
 							lane_number_ += 1;
+							is_lane_ = false;
 							is_parking_test_ = false;
 							break;
 						}
@@ -571,6 +575,7 @@ void process() {
 						else if(is_parking_area_){
 							is_control_ = true;
 							parking_count_++;
+							private_nh_.setParam("/waypoint_loader_node/parking_state", parking_count_);
 							break;
 						}
 					}
@@ -599,6 +604,7 @@ void process() {
 					ros::Time::init();
 					ros::Duration(7,0).sleep();
 
+					private_nh_.setParam("/waypoint_loader_node/parking_state", parking_count_);
 					ackermann_msg_.header.stamp = ros::Time::now();
               				ackermann_msg_.drive.speed = 0.0;
                 			ackermann_msg_.drive.steering_angle = 0.0;
@@ -611,7 +617,7 @@ void process() {
 
 			}
 
-			else if( dist < 2.5 && next_mission_state_ == 3) {
+			else if( dist < 1.5 && next_mission_state_ == 3) {
 				ROS_INFO("PARKING MISSION IS DONE.");
 				if(parking_count_ == 1) {
 
@@ -623,15 +629,15 @@ void process() {
 
                                         parking_trigger_ = false;
 					parking_count_++;
+					private_nh_.setParam("/waypoint_loader_node/parking_state", parking_count_);
 					is_retrieve_ = true;
-					if(lane_number_!=0) lane_number_ = 0;
                                         is_backward_=false;					
 				}
 
 			}
 			
-                        else if( dist < 2.0 && next_mission_state_ == 4) {
-					ROS_INFO("STOP SIGN DETECTED");
+                        else if( dist < 5.0 && next_mission_state_ == 4) {
+					ROS_INFO("GET BACK TO MAIN LANE");
 					/*ackermann_msg_.header.stamp = ros::Time::now();
               				ackermann_msg_.drive.speed = 0.0;
                 			ackermann_msg_.drive.steering_angle = 0.0;
@@ -641,7 +647,11 @@ void process() {
 
 					*/
 
-					lane_number_  = 0;
+					if(lane_number_!=0){
+					       	lane_number_ = 0;
+						is_lane_ = false;
+						private_nh_.setParam("/waypoint_loader_node/parking_state", -1);
+					}
 			}
 			
                         else if(dist < 6.0 && next_mission_state_ == 5) {
