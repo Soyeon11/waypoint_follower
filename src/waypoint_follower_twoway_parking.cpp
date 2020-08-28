@@ -551,6 +551,7 @@ void process() {
 
             if(dist < 2.0 && next_mission_state_ == 1) {
 				while(1){
+					if(!is_parking_test_){
 					ROS_INFO("PARKING SIGN DETECTED. WAITING FOR SIGN.");
 					ackermann_msg_.header.stamp = ros::Time::now();
               				ackermann_msg_.drive.speed = 0.0;
@@ -558,6 +559,7 @@ void process() {
 
                 			ackermann_pub_.publish(ackermann_msg_);
 					is_control_ = false;
+					}
 //LiDAR한테 PUB
 					if(!is_parking_test_&&(parking_test_count_==0)){
 						parking_info();
